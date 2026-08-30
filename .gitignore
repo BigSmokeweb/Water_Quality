@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Trained model artifacts (large binary files)
+models/artifacts/*.pkl
+
+# Raw data (large CSV files — add manually)
+data/raw/
+
+# Streamlit
+.streamlit/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
