@@ -1,23 +1,11 @@
-# Engineering Design & Architecture Log
+# Decision Log (DECISION.md)
 
-## 1. Data Ingestion & Signal Conditioning
+### 1. Data Cleaning, Features & Model Architecture
+- **Cleaning**: Short sensor dropouts ($\le 6\text{h}$) are filled via linear interpolation to maintain temporal gradients; longer outages use forward propagation. Non-physical telemetry spikes are clipped using $3.0 \times \text{IQR}$ winsorization rather than row deletion, preserving an unbroken time series.
+- **Features**: Lagged observations (1h–24h) and rolling statistics (mean, std, min, max over 3h–24h windows) capture catchment momentum and variance. Cyclical temporal dynamics (hour, day, month) are encoded via $\sin/\cos$ pairs, alongside domain interaction proxies (e.g., Turbidity $\times$ Water Temp).
+- **Model & Validation**: Multi-step forecasting is powered by **XGBoost Regressors**, chosen for high tabular sample efficiency, rapid inference, and robust non-linear gradient boosting. Models are evaluated using a 5-fold expanding walk-forward cross-validation to strictly prevent lookahead data leakage.
 
-- **Missing Telemetry Handling**: Sensor telemetry demonstrates temporal continuity with discrete sampling dropouts. A dual-stage strategy is implemented: linear time-series interpolation for short dropouts ($\le 6$ hours) to preserve local gradients, followed by causal forward propagation for extended outages. Mean or median imputation across the entire series was avoided to prevent dampening hydrological seasonality.
-- **Anomaly Mitigation**: Rather than dropping records and introducing temporal gaps into the autoregressive structure, IQR winsorization ($3.0 \times \text{IQR}$) is applied to clip non-physical voltage spikes, sensor biofouling, and transmission errors while maintaining an unbroken time index.
+### 2. LLM Orchestration & Hallucination Prevention
+- **Grounded Prompt Contract**: The Gemini LLM pipeline is strictly bounded by deterministic context injection (exact sensor telemetry, model forecast vectors, and safety guideline thresholds). The prompt enforces strict instruction boundaries that forbid ungrounded speculation.
+- **Deterministic Fallback**: If the API is unreachable, a hardcoded rule engine verifies compliance against safety limits and issues standardized operational directives.
 
-## 2. Feature Engineering Rationale
-
-- **Autoregressive Lags**: 1h, 3h, 6h, 12h, and 24h lags capture short-term catchment momentum and diurnal flushing dynamics.
-- **Rolling Moments**: Moving averages, standard deviations, and min/max envelopes over 3h, 6h, 12h, and 24h horizons capture variance shifts and localized trends.
-- **Cyclical Time Decomposition**: Hour-of-day, day-of-week, and month-of-year are mapped to orthogonal trigonometric components ($\sin/\cos$) to maintain cyclical continuity without artificial boundary jumps between 23:00 and 00:00.
-- **Physical Domain Proxies**: Nitrate-to-conductivity ratios and turbidity-temperature interaction indices model runoff transport physics and biological algal bloom dynamics.
-
-## 3. Modeling Methodology & Validation
-
-- **Algorithm**: XGBoost Regressors were selected over recurrent architectures (LSTM/GRU) due to lower inference latency on edge deployments, sample efficiency on tabular telemetry, and interpretability via split-gain importance distributions.
-- **Validation Protocol**: 5-fold expanding walk-forward cross-validation ensures strict chronological evaluation without future lookahead bias.
-
-## 4. Advisory Engine & Reliability
-
-- **Context Grounding**: The advisory layer injects real-time telemetry, 6-hour forecast vectors, and guideline standards into a structured prompt contract that strictly forbids ungrounded assertions.
-- **Deterministic Redundancy**: In offline environments or upon API connection timeouts, a rule-based engine executes threshold compliance checks and issues standard operational directives automatically.
