@@ -105,7 +105,7 @@ python -m streamlit run app.py
 Execute the test suite using pytest:
 
 ```bash
-
-Task By Technical Team SIES GST Completed By Milind Sahu
 pytest -v tests/
 ```
+
+Task By Technical Team SIES GST Completed By Milind Sahu
